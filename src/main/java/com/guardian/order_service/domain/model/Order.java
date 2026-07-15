@@ -36,6 +36,13 @@ public class Order {
     }
     public Order(UUID productId, Integer quantity, String status) {
 
+        this.productId = productId;
+        this.quantity = quantity;
+        this.status = status;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+
+
     }
 }
 
