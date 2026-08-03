@@ -12,8 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -44,5 +43,13 @@ public class CreateOrderUseCaseTest {
         assertNotNull(result);
         assertEquals("PENDING", result.getStatus());
     }
+    @Test
+    void shouldThrowExceptionWhenProductNotFound(){
+    CreateOrderRequest request = new CreateOrderRequest(UUID.randomUUID(),2);
+    when(catalogClient.productExists(any())).thenReturn(false);
+
+    assertThrows(IllegalArgumentException.class, () -> createOrderUseCase.execute(request));
+    }
+
 
 }
