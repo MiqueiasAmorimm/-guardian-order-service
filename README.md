@@ -52,6 +52,12 @@ The application runs on port `8082`.
 
 ## Endpoints
 
+### Get order by ID
+
+GET /orders/{id}
+
+Returns `200 OK` with the order or `404 Not Found`.
+
 ### Create order
 ```
 POST /orders
