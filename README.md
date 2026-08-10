@@ -29,7 +29,14 @@ The project follows a layered architecture with clear separation of concerns:
 - **RestTemplate** for synchronous HTTP communication with catalog-service
 - **Separate database** — each microservice owns its data (database per service pattern)
 
+## Configuration
+
+| Property | Description | Default |
+|---|---|---|
+| `catalog.service.url` | Base URL of catalog-service | `http://localhost:8081` |
+
 ## How to Run
+
 
 ### Prerequisites
 - Docker
