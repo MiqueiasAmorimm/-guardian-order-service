@@ -48,14 +48,21 @@ public class Order {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
 
+    }
 
-
-
+    public void updateStatus (String newStatus) {
+    validateStatus(newStatus);
+    if ("CANCELLED".equals(this.status)) {
+        throw new IllegalArgumentException("Cannot update a cancelled order");
+    }
+        this.status = newStatus;
+        this.updatedAt = Instant.now();
     }
 
     private void validateProductId(UUID productId) {
         if (productId == null) {
             throw new IllegalArgumentException("productId cannot be null");
+
         }
     }
 
