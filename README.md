@@ -59,6 +59,17 @@ The application runs on port `8082`.
 
 ## Endpoints
 
+### Update order status
+```
+PATCH /orders/{id}/status
+```
+```json
+{
+    "status": "CONFIRMED"
+}
+```
+Returns `200 OK` with the updated order, or `400 Bad Request` if the order is cancelled or status is invalid. Returns `400 Bad Request` if order not found.
+
 ### Get order by ID
 
 GET /orders/{id}
