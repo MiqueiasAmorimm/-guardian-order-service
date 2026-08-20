@@ -88,6 +88,19 @@ POST /orders
 ```
 Returns `201 Created` with the created order, or `400 Bad Request` if product does not exist in catalog-service.
 
+## Testing
+
+Unit tests implemented with JUnit 5 and Mockito, covering all use cases:
+
+- `CreateOrderUseCase` — product exists (success) and product not found (exception)
+- `GetOrderByIdUseCase` — order found and order not found
+- `UpdateOrderStatusUseCase` — status updated successfully and order not found
+
+Run tests:
+```bash
+./mvnw test
+``` 
+
 ## Communication
 
 This service communicates with **catalog-service** via REST:
