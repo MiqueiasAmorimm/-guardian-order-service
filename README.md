@@ -37,7 +37,6 @@ The project follows a layered architecture with clear separation of concerns:
 
 ## How to Run
 
-
 ### Prerequisites
 - Docker
 - Java 17
@@ -59,16 +58,11 @@ The application runs on port `8082`.
 
 ## Endpoints
 
-### Update order status
-```
-PATCH /orders/{id}/status
-```
-```json
-{
-    "status": "CONFIRMED"
-}
-```
-Returns `200 OK` with the updated order, or `400 Bad Request` if the order is cancelled or status is invalid. Returns `400 Bad Request` if order not found.
+### List all orders
+
+GET /orders
+
+Returns `200 OK` with a list of all orders.
 
 ### Get order by ID
 
@@ -77,9 +71,9 @@ GET /orders/{id}
 Returns `200 OK` with the order or `404 Not Found`.
 
 ### Create order
-```
+
 POST /orders
-```
+
 ```json
 {
     "productId": "uuid-of-existing-product",
@@ -88,26 +82,36 @@ POST /orders
 ```
 Returns `201 Created` with the created order, or `400 Bad Request` if product does not exist in catalog-service.
 
+### Update order status
+
+PATCH /orders/{id}/status
+
+```json
+{
+    "status": "CONFIRMED"
+}
+```
+Returns `200 OK` with the updated order, or `400 Bad Request` if the order is cancelled or status is invalid. Returns `404 Not Found` if order not found.
+
 ## Testing
 
 Unit tests implemented with JUnit 5 and Mockito, covering all use cases:
 
 - `CreateOrderUseCase` — product exists (success) and product not found (exception)
 - `GetOrderByIdUseCase` — order found and order not found
+- `GetAllOrdersUseCase` — returns all orders
 - `UpdateOrderStatusUseCase` — status updated successfully and order not found
 
 Run tests:
 ```bash
 ./mvnw test
-``` 
+```
 
 ## Communication
 
 This service communicates with **catalog-service** via REST:
 
-```
 POST /orders
 → Validates product existence: GET http://localhost:8081/products/{productId}
 → If product exists: creates and saves the order
 → If product not found: returns 400 Bad Request
-```
