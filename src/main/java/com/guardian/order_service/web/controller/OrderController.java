@@ -1,6 +1,7 @@
 package com.guardian.order_service.web.controller;
 
 import com.guardian.order_service.application.usecase.CreateOrderUseCase;
+import com.guardian.order_service.application.usecase.GetAllOrdersUseCase;
 import com.guardian.order_service.application.usecase.GetOrderByIdUseCase;
 import com.guardian.order_service.application.usecase.UpdateOrderStatusUseCase;
 import com.guardian.order_service.domain.model.Order;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,13 +21,16 @@ public class OrderController {
     private final CreateOrderUseCase createOrderUseCase;
     private final GetOrderByIdUseCase getOrderByIdUseCase;
     private final UpdateOrderStatusUseCase updateOrderStatusUseCase;
+    private final GetAllOrdersUseCase getAllOrdersUseCase;
 
     public OrderController(CreateOrderUseCase createOrderUseCase,
-                           GetOrderByIdUseCase getOrderByIdUseCase, UpdateOrderStatusUseCase updateOrderStatusUseCase) {
+                           GetOrderByIdUseCase getOrderByIdUseCase,
+                           UpdateOrderStatusUseCase updateOrderStatusUseCase,
+                           GetAllOrdersUseCase getAllOrdersUseCase) {
         this.createOrderUseCase = createOrderUseCase;
         this.getOrderByIdUseCase = getOrderByIdUseCase;
-
         this.updateOrderStatusUseCase = updateOrderStatusUseCase;
+        this.getAllOrdersUseCase = getAllOrdersUseCase;
     }
 
     @GetMapping("/{id}")
@@ -46,6 +51,12 @@ public class OrderController {
                                               @Valid @RequestBody UpdateOrderStatusRequest request) {
         Order order = updateOrderStatusUseCase.execute(id, request.getStatus());
         return ResponseEntity.ok(order);
+    }
+
+    @GetMapping
+    public List<Order> findAll() {
+       return getAllOrdersUseCase.execute();
+
     }
 
 }
