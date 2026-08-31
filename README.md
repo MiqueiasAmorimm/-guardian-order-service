@@ -115,3 +115,8 @@ POST /orders
 → Validates product existence: GET http://localhost:8081/products/{productId}
 → If product exists: creates and saves the order
 → If product not found: returns 400 Bad Request
+
+## API Documentation
+
+Swagger UI is available when the application is running:
+`http://localhost:8082/swagger-ui/index.html`
