@@ -3,6 +3,7 @@ package com.guardian.order_service.application.usecase;
 import com.guardian.order_service.domain.model.Order;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import org.springframework.stereotype.Service;
+import com.guardian.order_service.domain.exception.ResourceNotFoundException;
 
 import java.util.UUID;
 
@@ -15,7 +16,7 @@ public class UpdateOrderStatusUseCase {
     }
     public Order execute (UUID id, String newStatus) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " +id ));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " +id ));
         order.updateStatus(newStatus);
        return orderRepository.save(order);
     }
