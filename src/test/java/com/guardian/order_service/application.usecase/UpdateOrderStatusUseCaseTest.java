@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.guardian.order_service.domain.exception.ResourceNotFoundException;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -44,7 +45,7 @@ public class UpdateOrderStatusUseCaseTest {
     UUID id = UUID.randomUUID();
     when(orderRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> updateOrderStatusUseCase.execute(id, "CONFIRMED"));
+        assertThrows(ResourceNotFoundException.class, () -> updateOrderStatusUseCase.execute(id, "CONFIRMED"));
 
     }
 
