@@ -28,12 +28,16 @@ The project follows a layered architecture with clear separation of concerns:
 - **Flyway** instead of ddl-auto — schema version control
 - **RestTemplate** for synchronous HTTP communication with catalog-service
 - **Separate database** — each microservice owns its data (database per service pattern)
+- **Environment variables** — credentials and URLs configured via environment variables
 
 ## Configuration
 
 | Property | Description | Default |
 |---|---|---|
-| `catalog.service.url` | Base URL of catalog-service | `http://localhost:8081` |
+| `DB_URL` | Database URL | `jdbc:postgresql://localhost:5434/guardian_order` |
+| `DB_USERNAME` | Database username | `guardian` |
+| `DB_PASSWORD` | Database password | `guardian` |
+| `CATALOG_SERVICE_URL` | Base URL of catalog-service | `http://localhost:8081` |
 
 ## How to Run
 
@@ -107,6 +111,10 @@ Run tests:
 ./mvnw test
 ```
 
+## CI
+
+GitHub Actions runs all unit tests automatically on every push to master.
+
 ## Communication
 
 This service communicates with **catalog-service** via REST:
@@ -115,6 +123,7 @@ POST /orders
 → Validates product existence: GET http://localhost:8081/products/{productId}
 → If product exists: creates and saves the order
 → If product not found: returns 400 Bad Request
+
 
 ## API Documentation
 
