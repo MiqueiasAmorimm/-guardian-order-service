@@ -1,5 +1,9 @@
 package com.guardian.order_service.application.usecase;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import com.guardian.order_service.domain.model.Order;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import org.junit.jupiter.api.Test;
@@ -29,11 +33,14 @@ public class GetAllOrdersUseCaseTest {
                 new Order(UUID.randomUUID(), 2, "PENDING"),
                 new Order(UUID.randomUUID(), 1, "CONFIRMED")
         );
-        when(orderRepository.findAll()).thenReturn(orders);
+        Pageable pageable = PageRequest.of( 0,10);
+        Page<Order> page = new PageImpl<>(orders ,pageable , orders.size());
 
-        List<Order> result = getAllOrdersUseCase.execute();
+        when(orderRepository.findAll(pageable)).thenReturn(page);
+
+        Page<Order> result = getAllOrdersUseCase.execute(pageable);
 
         assertNotNull(result);
-        assertEquals(2, result.size());
+        assertEquals(2, result.getTotalElements());
     }
 }

@@ -3,8 +3,8 @@ package com.guardian.order_service.application.usecase;
 import com.guardian.order_service.domain.model.Order;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class GetAllOrdersUseCase {
@@ -14,7 +14,7 @@ public class GetAllOrdersUseCase {
     public GetAllOrdersUseCase(OrderRepository orderRepository) {
         this.orderRepository = orderRepository;
     }
-    public List<Order> execute() {
-        return orderRepository.findAll();
+    public Page<Order> execute(Pageable pageable) {
+        return orderRepository.findAll(pageable);
     }
 }

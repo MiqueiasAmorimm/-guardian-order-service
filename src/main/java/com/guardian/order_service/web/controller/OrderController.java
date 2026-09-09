@@ -8,10 +8,11 @@ import com.guardian.order_service.domain.model.Order;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
 import com.guardian.order_service.web.dto.UpdateOrderStatusRequest;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,8 +55,8 @@ public class OrderController {
     }
 
     @GetMapping
-    public List<Order> findAll() {
-       return getAllOrdersUseCase.execute();
+    public Page<Order> findAll(Pageable pageable) {
+       return getAllOrdersUseCase.execute(pageable);
 
     }
 
