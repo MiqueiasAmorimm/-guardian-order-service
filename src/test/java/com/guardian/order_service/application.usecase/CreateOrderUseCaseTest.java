@@ -1,6 +1,7 @@
 package com.guardian.order_service.application.usecase;
 
 import com.guardian.order_service.domain.model.Order;
+import com.guardian.order_service.domain.model.OrderStatus;
 import com.guardian.order_service.infrastructure.CatalogClient;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
@@ -35,13 +36,13 @@ public class CreateOrderUseCaseTest {
 
     );
     when(catalogClient.productExists(any())).thenReturn(true);
-        Order savedOrder = new Order(request.getProductId(), request.getQuantity(), "PENDING");
+        Order savedOrder = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
         when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
 
         Order result = createOrderUseCase.execute(request);
 
         assertNotNull(result);
-        assertEquals("PENDING", result.getStatus());
+        assertEquals(OrderStatus.CREATED, result.getStatus());
     }
     @Test
     void shouldThrowExceptionWhenProductNotFound(){

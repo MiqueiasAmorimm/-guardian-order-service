@@ -1,5 +1,6 @@
 package com.guardian.order_service.application.usecase;
 
+import com.guardian.order_service.domain.model.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -30,8 +31,8 @@ public class GetAllOrdersUseCaseTest {
     @Test
     void shouldReturnAllOrders() {
         List<Order> orders = List.of(
-                new Order(UUID.randomUUID(), 2, "PENDING"),
-                new Order(UUID.randomUUID(), 1, "CONFIRMED")
+                new Order(UUID.randomUUID(), 2, OrderStatus.CREATED),
+                new Order(UUID.randomUUID(), 1, OrderStatus.AWAITING_PAYMENT)
         );
         Pageable pageable = PageRequest.of( 0,10);
         Page<Order> page = new PageImpl<>(orders ,pageable , orders.size());
