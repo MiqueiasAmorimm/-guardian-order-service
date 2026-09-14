@@ -1,6 +1,7 @@
 package com.guardian.order_service.application.usecase;
 
 import com.guardian.order_service.domain.model.Order;
+import com.guardian.order_service.domain.model.OrderStatus;
 import com.guardian.order_service.infrastructure.CatalogClient;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
@@ -16,11 +17,11 @@ public class CreateOrderUseCase {
         this.orderRepository = orderRepository;
     }
 
-    public Order execute(CreateOrderRequest request)  {
-        if (!catalogClient.productExists(request.getProductId())){
+    public Order execute(CreateOrderRequest request) {
+        if (!catalogClient.productExists(request.getProductId())) {
             throw new IllegalArgumentException("Product not found: " + request.getProductId());
         }
-        Order order = new Order(request.getProductId(), request.getQuantity(), "PENDING");
+        Order order = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
         return orderRepository.save(order);
     }
 }

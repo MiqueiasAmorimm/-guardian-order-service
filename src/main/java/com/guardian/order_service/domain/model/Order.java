@@ -1,6 +1,5 @@
 package com.guardian.order_service.domain.model;
 
-
 import jakarta.persistence.*;
 import lombok.Getter;
 
@@ -8,10 +7,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table (name = "orders")
+@Table(name = "orders")
 @Getter
 public class Order {
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -24,7 +22,7 @@ public class Order {
     private Integer quantity;
 
     @Column(nullable = false)
-    private String status;
+    private OrderStatus status;
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -32,29 +30,30 @@ public class Order {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    private static final OrderStatusTransitionValidator TRANSITION_VALIDATOR = new OrderStatusTransitionValidator();
+
     protected Order() {
         // for JPA
     }
 
-    public Order(UUID productId, Integer quantity, String status) {
+    public Order(UUID productId, Integer quantity, OrderStatus status) {
         validateProductId(productId);
         validateQuantity(quantity);
         validateStatus(status);
-
 
         this.productId = productId;
         this.quantity = quantity;
         this.status = status;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
-
     }
 
-    public void updateStatus (String newStatus) {
-    validateStatus(newStatus);
-    if ("CANCELLED".equals(this.status)) {
-        throw new IllegalArgumentException("Cannot update a cancelled order");
-    }
+    public void updateStatus(OrderStatus newStatus) {
+        validateStatus(newStatus);
+        if (!TRANSITION_VALIDATOR.canTransition(this.status, newStatus)) {
+            throw new IllegalArgumentException(
+                    "Cannot transition order from " + this.status + " to " + newStatus);
+        }
         this.status = newStatus;
         this.updatedAt = Instant.now();
     }
@@ -62,7 +61,6 @@ public class Order {
     private void validateProductId(UUID productId) {
         if (productId == null) {
             throw new IllegalArgumentException("productId cannot be null");
-
         }
     }
 
@@ -72,11 +70,9 @@ public class Order {
         }
     }
 
-    private void validateStatus(String status) {
-        if (status == null || status.isBlank()) {
-            throw new IllegalArgumentException("status cannot be empty");
+    private void validateStatus(OrderStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("status cannot be null");
         }
     }
 }
-
-

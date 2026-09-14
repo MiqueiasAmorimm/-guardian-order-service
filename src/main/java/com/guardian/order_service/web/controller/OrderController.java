@@ -5,6 +5,7 @@ import com.guardian.order_service.application.usecase.GetAllOrdersUseCase;
 import com.guardian.order_service.application.usecase.GetOrderByIdUseCase;
 import com.guardian.order_service.application.usecase.UpdateOrderStatusUseCase;
 import com.guardian.order_service.domain.model.Order;
+import com.guardian.order_service.domain.model.OrderStatus;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
 import com.guardian.order_service.web.dto.UpdateOrderStatusRequest;
 import jakarta.validation.Valid;
@@ -50,7 +51,7 @@ public class OrderController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Order> updateStatus(@PathVariable UUID id,
                                               @Valid @RequestBody UpdateOrderStatusRequest request) {
-        Order order = updateOrderStatusUseCase.execute(id, request.getStatus());
+        Order order = updateOrderStatusUseCase.execute(id, OrderStatus.valueOf(request.getStatus()));
         return ResponseEntity.ok(order);
     }
 
