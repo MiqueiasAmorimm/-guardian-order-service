@@ -36,3 +36,9 @@ Database credentials and catalog-service URL configured via environment variable
 
 ## Pagination on GET /orders
 Returns orders in pages instead of all at once. Prevents performance issues with large datasets.
+
+## OrderStatus Persisted as STRING, not ORDINAL
+
+By default, JPA/Hibernate persists enums as their ordinal position (an integer) in the database. This is fragile: reordering or inserting a new value in the middle of the enum silently changes the meaning of already-stored data, with no error raised.
+
+Added `@Enumerated(EnumType.STRING)` to the `status` field so the enum's name (e.g. "APPROVED") is stored instead of its position. This makes the column resilient to future changes in the enum's declaration order.
