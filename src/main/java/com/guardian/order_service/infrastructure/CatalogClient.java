@@ -15,7 +15,7 @@ public class CatalogClient {
     public CatalogClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
-    public boolean productExists(UUID productId){
+    public boolean productExists(UUID productId) {
         try {
             restTemplate.getForObject(
                     catalogServiceUrl + "/products/" + productId,
@@ -26,4 +26,15 @@ public class CatalogClient {
             return false;
         }
     }
+        public ProductInfo getProduct(UUID productId) {
+            try {
+               return restTemplate.getForObject(
+                        catalogServiceUrl + "/products/" + productId,
+                        ProductInfo.class
+                );
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Product not found: " + productId);
+            }
+
+        }
 }
