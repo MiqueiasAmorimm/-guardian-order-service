@@ -11,9 +11,23 @@ public class OrderCreatedEvent {
     private Instant createdAt;
 
     public OrderCreatedEvent (UUID orderId, BigDecimal amount, String currency, Instant createdAt) {
-    this.orderId = orderId;
-    this.amount = amount;
-    this.currency = currency;
-    this.createdAt= createdAt;
+        this.orderId = orderId;
+        this.amount = amount;
+        this.currency = currency;
+        this.createdAt = createdAt;
+    }
+    public UUID getOrderId() {
+        return this.orderId;
+    }
+
+    public BigDecimal getAmount() {
+        return this.amount;
+    }
+    public String getCurrency(){
+        return this.currency;
+
+    }
+    public Instant getCreatedAt(){
+        return this.createdAt;
     }
 }
