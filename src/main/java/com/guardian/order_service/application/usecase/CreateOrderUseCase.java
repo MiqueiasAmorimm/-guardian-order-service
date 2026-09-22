@@ -10,6 +10,8 @@ import com.guardian.order_service.web.dto.CreateOrderRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import java.time.Instant;
+
 @Service
 public class CreateOrderUseCase {
     private final CatalogClient catalogClient;
@@ -25,6 +27,11 @@ public class CreateOrderUseCase {
     public Order execute(CreateOrderRequest request) {
         ProductInfo product = catalogClient.getProduct(request.getProductId());
         Order order = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        OrderCreatedEvent event = new OrderCreatedEvent(savedOrder.getId(), product.getPrice(), "BRL", Instant.now());
+
+        kafkaTemplate.send("order.created", event);
+        return savedOrder;
     }
 }

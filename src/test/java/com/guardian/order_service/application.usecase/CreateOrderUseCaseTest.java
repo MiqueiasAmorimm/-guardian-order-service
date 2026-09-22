@@ -3,6 +3,8 @@ package com.guardian.order_service.application.usecase;
 import com.guardian.order_service.domain.model.Order;
 import com.guardian.order_service.domain.model.OrderStatus;
 import com.guardian.order_service.infrastructure.CatalogClient;
+import com.guardian.order_service.infrastructure.ProductInfo;
+import com.guardian.order_service.infrastructure.event.OrderCreatedEvent;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
 import org.junit.jupiter.api.Test;
@@ -10,7 +12,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.kafka.core.KafkaTemplate;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,6 +29,9 @@ public class CreateOrderUseCaseTest {
     @Mock
     private CatalogClient catalogClient;
 
+    @Mock
+    private KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate;
+
     @InjectMocks
     private CreateOrderUseCase createOrderUseCase;
 
@@ -35,7 +42,11 @@ public class CreateOrderUseCaseTest {
             2
 
     );
-    when(catalogClient.productExists(any())).thenReturn(true);
+
+        ProductInfo productInfo = new ProductInfo();
+        productInfo.setPrice(BigDecimal.valueOf(100));
+        when(catalogClient.getProduct(any())).thenReturn(productInfo);
+
         Order savedOrder = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
         when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
 
@@ -44,13 +55,12 @@ public class CreateOrderUseCaseTest {
         assertNotNull(result);
         assertEquals(OrderStatus.CREATED, result.getStatus());
     }
+
     @Test
-    void shouldThrowExceptionWhenProductNotFound(){
-    CreateOrderRequest request = new CreateOrderRequest(UUID.randomUUID(),2);
-    when(catalogClient.productExists(any())).thenReturn(false);
+    void shouldThrowExceptionWhenProductNotFound() {
+        CreateOrderRequest request = new CreateOrderRequest(UUID.randomUUID(), 2);
+        when(catalogClient.getProduct(any())).thenThrow(new IllegalArgumentException("Product not found"));
 
-    assertThrows(IllegalArgumentException.class, () -> createOrderUseCase.execute(request));
+        assertThrows(IllegalArgumentException.class, () -> createOrderUseCase.execute(request));
     }
-
-
 }
