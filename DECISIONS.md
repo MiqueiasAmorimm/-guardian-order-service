@@ -42,3 +42,27 @@ Returns orders in pages instead of all at once. Prevents performance issues with
 By default, JPA/Hibernate persists enums as their ordinal position (an integer) in the database. This is fragile: reordering or inserting a new value in the middle of the enum silently changes the meaning of already-stored data, with no error raised.
 
 Added `@Enumerated(EnumType.STRING)` to the `status` field so the enum's name (e.g. "APPROVED") is stored instead of its position. This makes the column resilient to future changes in the enum's declaration order.
+
+## One Kafka Topic per Event Type
+
+Considered a single generic topic carrying all events with a "type" field versus one topic per event type (order.created, payment.approved, payment.rejected). Chose one topic per event type.
+
+A generic topic mixes unrelated schemas in the same channel, forcing every consumer to parse a type field and handle payloads it doesn't care about. Separate topics let each service subscribe only to what it actually needs (payment-service only needs order.created; order-service only needs the payment.* topics), and allow independent retention/scaling policies per event type in the future.
+
+## OrderCreatedEvent Carries the Calculated Amount
+
+When designing the order.created event payload, compared three approaches: (1) the event carries the calculated amount at creation time, (2) payment-service queries catalog-service synchronously for the current price, (3) payment-service keeps a local read-model copy of product prices via its own Kafka subscription to catalog-service events (CQRS-style projection).
+
+Chose (1). Option (2) reintroduces a synchronous dependency in the middle of an otherwise asynchronous flow, defeating the resilience Kafka is meant to provide — if catalog-service is down, payment processing would block even though the event already arrived. Option (3) is the most resilient long-term but adds real complexity (a second consumer, a local database, eventual consistency) that isn't justified yet at this stage. Charging the price captured at order creation time is also the correct business behavior — a customer should pay what they saw when they bought, not a price that changed later.
+
+## JSON Serializer for Kafka Producer Values
+
+Spring Kafka defaults to StringSerializer for both keys and values when only `bootstrap-servers` is configured. Publishing an `OrderCreatedEvent` object with the default serializer failed with a `ClassCastException`, since the object cannot be cast to `String`.
+
+Configured `spring.kafka.producer.value-serializer` to `JsonSerializer`, which converts the event object to JSON before sending — the same approach already used for REST API responses via Jackson. The key serializer remains `StringSerializer`, since no explicit message key is used yet.
+
+## Kafka in KRaft Mode (No Zookeeper)
+
+Kafka traditionally requires a separate Zookeeper process to coordinate the cluster. Chose KRaft mode instead, where the broker handles its own coordination internally, requiring only a single container.
+
+This reduces operational complexity for local development (one container instead of two) and follows the direction the Kafka project itself is moving, as Zookeeper is being phased out in newer versions.
