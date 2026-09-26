@@ -1,6 +1,6 @@
 # Guardian — Order Service
 
-Microservice responsible for order management in an event-driven e-commerce system. Communicates with the catalog-service to validate product existence before creating an order.
+Microservice responsible for order management in an event-driven e-commerce system. Communicates with the catalog-service to validate product existence before creating an order, and publishes events to Kafka for asynchronous processing.
 
 ## Tech Stack
 
@@ -12,14 +12,15 @@ Microservice responsible for order management in an event-driven e-commerce syst
 - Docker
 - Lombok
 - RestTemplate
+- Apache Kafka (Spring Kafka)
 
 ## Architecture
 
 The project follows a layered architecture with clear separation of concerns:
 
-- **domain** → `Order` entity with business rules
+- **domain** → `Order` entity with business rules, `OrderStatus` enum and `OrderStatusTransitionValidator`
 - **application** → use cases representing system actions
-- **infrastructure** → JPA repository and HTTP client (CatalogClient)
+- **infrastructure** → JPA repository, HTTP client (CatalogClient), and Kafka event (OrderCreatedEvent)
 - **web** → REST controllers, DTOs, and global error handling
 
 ### Technical Decisions
@@ -29,6 +30,8 @@ The project follows a layered architecture with clear separation of concerns:
 - **RestTemplate** for synchronous HTTP communication with catalog-service
 - **Separate database** — each microservice owns its data (database per service pattern)
 - **Environment variables** — credentials and URLs configured via environment variables
+- **OrderStatus enum with transition validation** — prevents invalid status changes and out-of-order event handling (see DECISIONS.md)
+- **Apache Kafka** — order-service publishes an `order.created` event after creating an order, enabling asynchronous communication with future consumers (payment-service)
 
 ## Configuration
 
@@ -38,6 +41,7 @@ The project follows a layered architecture with clear separation of concerns:
 | `DB_USERNAME` | Database username | `guardian` |
 | `DB_PASSWORD` | Database password | `guardian` |
 | `CATALOG_SERVICE_URL` | Base URL of catalog-service | `http://localhost:8081` |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address | `localhost:9092` |
 
 ## How to Run
 
@@ -45,6 +49,7 @@ The project follows a layered architecture with clear separation of concerns:
 - Docker
 - Java 17
 - catalog-service running on port 8081
+- Kafka broker running on port 9092
 
 ### Starting the database
 
@@ -92,10 +97,10 @@ PATCH /orders/{id}/status
 
 ```json
 {
-    "status": "CONFIRMED"
+    "status": "AWAITING_PAYMENT"
 }
 ```
-Returns `200 OK` with the updated order, or `400 Bad Request` if the order is cancelled or status is invalid. Returns `404 Not Found` if order not found.
+Returns `200 OK` with the updated order, or `400 Bad Request` if the status transition is invalid. Returns `404 Not Found` if order not found.
 
 ## Testing
 
@@ -120,10 +125,13 @@ GitHub Actions runs all unit tests automatically on every push to master.
 This service communicates with **catalog-service** via REST:
 
 POST /orders
-→ Validates product existence: GET http://localhost:8081/products/{productId}
-→ If product exists: creates and saves the order
+→ Validates product existence and retrieves its price: GET http://localhost:8081/products/{productId}
+→ If product exists: creates and saves the order, then publishes an `order.created` event to Kafka
 → If product not found: returns 400 Bad Request
 
+This service also publishes events to **Apache Kafka**:
+
+- `order.created` — published after an order is successfully created, carrying the order ID, amount, currency and timestamp. Will be consumed by payment-service (Phase 2, in progress).
 
 ## API Documentation
 
