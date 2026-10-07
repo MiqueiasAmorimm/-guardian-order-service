@@ -20,7 +20,7 @@ Transition rules are enforced by a separate `OrderStatusTransitionValidator` cla
 This decision was made in preparation for Phase 2 (Kafka), where payment-service will publish events that trigger order status changes asynchronously — making strict transition validation essential to avoid inconsistent state from out-of-order events.
 
 ## Database per Service
-Each microservice owns its own database. If one database goes down, only that service is affected. catalog-service uses port 5433, order-service uses port 5434.
+Catalog-service uses port 5433, order-service uses port 5434, payment-service uses port 5435.
 
 ## RestTemplate for inter-service communication
 Synchronous HTTP communication with catalog-service, used to validate that a product exists and to retrieve its price before creating an order. A synchronous call fits here because the order cannot be created without this answer. Asynchronous communication with payment-service goes through Kafka, so the two mechanisms coexist.
