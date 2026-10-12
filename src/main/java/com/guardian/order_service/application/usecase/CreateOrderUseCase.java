@@ -7,9 +7,10 @@ import com.guardian.order_service.infrastructure.ProductInfo;
 import com.guardian.order_service.infrastructure.event.OrderCreatedEvent;
 import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
-import org.springframework.stereotype.Service;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Service
@@ -29,7 +30,11 @@ public class CreateOrderUseCase {
         Order order = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
         Order savedOrder = orderRepository.save(order);
 
-        OrderCreatedEvent event = new OrderCreatedEvent(savedOrder.getId(), product.getPrice(), "BRL", Instant.now());
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                savedOrder.getId(),
+                product.getPrice().multiply(BigDecimal.valueOf(savedOrder.getQuantity())),
+                "BRL",
+                Instant.now());
 
         kafkaTemplate.send("order.created", event);
         return savedOrder;
