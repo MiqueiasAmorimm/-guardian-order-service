@@ -17,10 +17,10 @@ Order status was initially a raw `String`, allowing any value to be persisted an
 
 Transition rules are enforced by a separate `OrderStatusTransitionValidator` class, not inside the enum itself. This keeps the enum as a pure set of values (what an order can be) while transition logic (what changes are allowed) stays isolated as a business rule that can evolve independently — e.g. APPROVED and REJECTED are terminal states, so a delayed or out-of-order event cannot silently overwrite a final status.
 
-This decision was made in preparation for Phase 2 (Kafka), where payment-service will publish events that trigger order status changes asynchronously — making strict transition validation essential to avoid inconsistent state from out-of-order events.
+This decision was made in preparation for Phase 2 (Kafka), where payment-service publishes events that trigger order status changes asynchronously — making strict transition validation essential to avoid inconsistent state from out-of-order events.
 
 ## Database per Service
-Catalog-service uses port 5433, order-service uses port 5434, payment-service uses port 5435.
+Each microservice owns its own database. If one database goes down, only that service is affected. catalog-service uses port 5433, order-service uses port 5434, payment-service uses port 5435.
 
 ## RestTemplate for inter-service communication
 Synchronous HTTP communication with catalog-service, used to validate that a product exists and to retrieve its price before creating an order. A synchronous call fits here because the order cannot be created without this answer. Asynchronous communication with payment-service goes through Kafka, so the two mechanisms coexist.
@@ -55,6 +55,8 @@ When designing the order.created event payload, compared three approaches: (1) t
 
 Chose (1). Option (2) reintroduces a synchronous dependency in the middle of an otherwise asynchronous flow, defeating the resilience Kafka is meant to provide — if catalog-service is down, payment processing would block even though the event already arrived. Option (3) is the most resilient long-term but adds real complexity (a second consumer, a local database, eventual consistency) that isn't justified yet at this stage. Charging the price captured at order creation time is also the correct business behavior — a customer should pay what they saw when they bought, not a price that changed later.
 
+The first version of the event published the unit price instead of the order total (price × quantity). It was caught by reading the end-to-end logs: the unit tests mock the Kafka producer and never check the published value. The event now carries the total. There is still no test that checks the published amount.
+
 ## JSON Serializer for Kafka Producer Values
 
 Spring Kafka defaults to StringSerializer for both keys and values when only `bootstrap-servers` is configured. Publishing an `OrderCreatedEvent` object with the default serializer failed with a `ClassCastException`, since the object cannot be cast to `String`.
@@ -72,3 +74,19 @@ This reduces operational complexity for local development (one container instead
 After replacing the raw `String` status with the `OrderStatus` enum, existing rows still held values the enum does not define (`PENDING`, `CANCELLED`), which made `GET /orders` fail with an unknown enum constant error.
 
 Fixed with a versioned migration (`V2__migrate_legacy_order_status.sql`) that maps `PENDING` to `CREATED` and `CANCELLED` to `CANCELED`, instead of a manual `UPDATE`. The fix is versioned, runs automatically in every environment, and leaves an auditable history. Applied migrations are never edited; corrections always go in a new version.
+
+## Order Moves to AWAITING_PAYMENT Before It Is Saved and Published
+
+The state machine only allows `AWAITING_PAYMENT → APPROVED`, but orders were created in `CREATED` and nothing moved them to `AWAITING_PAYMENT`. The payment-service answers within seconds, so the order has to be in the right state before `order.created` leaves; moving it afterwards would race with the answer.
+
+Considered four options: (A) create the order directly in `AWAITING_PAYMENT`; (B) create it in `CREATED`, call `updateStatus(AWAITING_PAYMENT)` and save once; (C) save in `CREATED`, move, and save again; (D) relax the validator to allow `CREATED → APPROVED`. Chose (B), inside a `@Transactional` method. It goes through the validator, writes once, and the event is published with the right state. (A) leaves `CREATED` unused and skips the transition rule; (C) doubles the writes and can leave an order stuck in `CREATED`; (D) discards the rule the state machine exists to enforce.
+
+Trade-offs: `CREATED` never reaches the database, and orders created before this change stay in `CREATED`. `@Transactional` only covers the database: the event is sent before the transaction commits, so the event can leave and the commit still fail, or the commit can succeed and the send fail. The transactional outbox is the planned fix. No automated test covers this transition yet.
+
+## Consuming payment.approved with a Local Copy of the Event
+
+`PaymentApprovedConsumer` (in `infrastructure.event`) listens to `payment.approved` and calls the existing `UpdateOrderStatusUseCase` with `APPROVED`. The consumer only forwards the message; the state machine decides whether the change is valid, so the rule stays in one place.
+
+As in payment-service, the event is a local copy (`PaymentApprovedEvent`) instead of an import, so the only link between the services is the JSON contract. The consumer uses `JsonDeserializer` with a `default.type` pointing to the local copy and `use.type.headers=false`, because the producer attaches its own class name to the message and that class does not exist in this service.
+
+Trade-offs: an old order still in `CREATED` received an approval, the state machine refused it, the error was logged and the consumer kept reading the next messages. A repeated `payment.approved` for an order that is already `APPROVED` is refused the same way, as an error in the log instead of being ignored. There is no dead-letter topic, so a valid message that keeps failing is not stored anywhere for reprocessing. Field names are kept in sync by hand, and there is no contract test.
