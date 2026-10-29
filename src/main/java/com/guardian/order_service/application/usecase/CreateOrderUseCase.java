@@ -9,6 +9,7 @@ import com.guardian.order_service.infrastructure.repository.OrderRepository;
 import com.guardian.order_service.web.dto.CreateOrderRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,9 +26,12 @@ public class CreateOrderUseCase {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    @Transactional
     public Order execute(CreateOrderRequest request) {
         ProductInfo product = catalogClient.getProduct(request.getProductId());
+
         Order order = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
+        order.updateStatus(OrderStatus.AWAITING_PAYMENT);
         Order savedOrder = orderRepository.save(order);
 
         OrderCreatedEvent event = new OrderCreatedEvent(
