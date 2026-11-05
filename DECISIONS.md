@@ -55,7 +55,7 @@ When designing the order.created event payload, compared three approaches: (1) t
 
 Chose (1). Option (2) reintroduces a synchronous dependency in the middle of an otherwise asynchronous flow, defeating the resilience Kafka is meant to provide — if catalog-service is down, payment processing would block even though the event already arrived. Option (3) is the most resilient long-term but adds real complexity (a second consumer, a local database, eventual consistency) that isn't justified yet at this stage. Charging the price captured at order creation time is also the correct business behavior — a customer should pay what they saw when they bought, not a price that changed later.
 
-The first version of the event published the unit price instead of the order total (price × quantity). It was caught by reading the end-to-end logs: the unit tests mock the Kafka producer and never check the published value. The event now carries the total. There is still no test that checks the published amount.
+The first version of the event published the unit price instead of the order total (price × quantity). It was caught by reading the end-to-end logs: the unit tests mock the Kafka producer and never check the published value. The event now carries the total. A unit test now captures the event sent to Kafka and checks the total (19.90 × 3 = 59.70) and the currency; removing the multiplication makes it fail with `expected: <59.70> but was: <19.90>`. There is still no integration test with a real Kafka.
 
 ## JSON Serializer for Kafka Producer Values
 

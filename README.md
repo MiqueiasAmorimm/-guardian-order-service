@@ -144,9 +144,9 @@ If the transition is not allowed (for example, an order still in `CREATED` recei
 
 ## Testing
 
-Unit tests implemented with JUnit 5 and Mockito, covering the use cases (7 tests):
+Unit tests implemented with JUnit 5 and Mockito, covering the use cases (8 tests):
 
-- `CreateOrderUseCase` — product exists (success) and product not found (exception)
+- `CreateOrderUseCase` — product exists (success), product not found (exception), and the published `order.created` event carries the order total (price × quantity) and the currency
 - `GetOrderByIdUseCase` — order found and order not found
 - `GetAllOrdersUseCase` — returns all orders
 - `UpdateOrderStatusUseCase` — status updated successfully and order not found
