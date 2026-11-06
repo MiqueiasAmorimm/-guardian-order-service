@@ -1,7 +1,6 @@
 package com.guardian.order_service.infrastructure.event;
 
-import com.guardian.order_service.application.usecase.UpdateOrderStatusUseCase;
-import com.guardian.order_service.domain.model.OrderStatus;
+import com.guardian.order_service.application.usecase.ApproveOrderUseCase;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -10,16 +9,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class PaymentApprovedConsumer {
 
-    private final UpdateOrderStatusUseCase updateOrderStatusUseCase;
+    private final ApproveOrderUseCase approveOrderUseCase;
 
-    public PaymentApprovedConsumer(UpdateOrderStatusUseCase updateOrderStatusUseCase) {
-        this.updateOrderStatusUseCase = updateOrderStatusUseCase;
+    public PaymentApprovedConsumer(ApproveOrderUseCase approveOrderUseCase) {
+        this.approveOrderUseCase = approveOrderUseCase;
     }
 
     @KafkaListener(topics = "payment.approved")
     public void consume(PaymentApprovedEvent event) {
         log.info("Received payment.approved: orderId={}, paymentId={}",
                 event.getOrderId(), event.getPaymentId());
-        updateOrderStatusUseCase.execute(event.getOrderId(), OrderStatus.APPROVED);
+        approveOrderUseCase.execute(event.getOrderId());
     }
 }
