@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -34,5 +35,17 @@ public class ApproveOrderUseCaseTest {
         approveOrderUseCase.execute(id);
 
         verify(orderRepository, never()).save(any(Order.class));
+    }
+    @Test
+    void shouldApproveWhenAwaitingPayment() {
+        UUID id = UUID.randomUUID();
+        Order order = new Order(UUID.randomUUID(), 2, OrderStatus.CREATED);
+        order.updateStatus(OrderStatus.AWAITING_PAYMENT);
+        when(orderRepository.findById(id)).thenReturn(Optional.of(order));
+
+        approveOrderUseCase.execute(id);
+
+        assertEquals(OrderStatus.APPROVED, order.getStatus());
+        verify(orderRepository).save(order);
     }
 }
