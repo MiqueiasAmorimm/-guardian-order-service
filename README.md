@@ -120,7 +120,7 @@ POST /orders
 This service also uses **Apache Kafka**:
 
 - **Publishes** `order.created` — after an order is created. It carries the order ID, the order total (price × quantity), the currency and a timestamp. Consumed by payment-service.
-- **Consumes** `payment.approved` — published by payment-service when a payment is approved. The order is moved to `APPROVED`.
+- **Consumes** `payment.approved` — published by payment-service when a payment is approved. The order is moved to `APPROVED` by `ApproveOrderUseCase`.
 
 Example `payment.approved` payload:
 
@@ -133,23 +133,24 @@ Example `payment.approved` payload:
 }
 ```
 
-If the transition is not allowed (for example, an order still in `CREATED` receives an approval), the state machine refuses it, the error is logged and the consumer keeps reading the next messages.
+An approval for an order that is already `APPROVED` is ignored with a warning. One that is not allowed (for example, an order still in `CREATED`) is refused by the state machine, the error is logged and the consumer keeps reading the next messages.
 
 ## Known limitations
 
-- A repeated `payment.approved` for an order that is already `APPROVED` is refused by the state machine and logged as an error, instead of being ignored.
+- The Kafka consumer and the move to `AWAITING_PAYMENT` have no automated tests yet. `ApproveOrderUseCase` has unit tests.
 - `payment.rejected` is not consumed yet.
 - Saving the order and publishing the event are not atomic (planned: transactional outbox).
-- The Kafka consumer and the move to `AWAITING_PAYMENT` have no automated tests yet.
+- If catalog-service is unreachable, `POST /orders` reports it as "Product not found" (400), because any failure of the catalog call is treated as a missing product.
 
 ## Testing
 
-Unit tests implemented with JUnit 5 and Mockito, covering the use cases (8 tests):
+Unit tests implemented with JUnit 5 and Mockito, covering the use cases (10 tests):
 
 - `CreateOrderUseCase` — product exists (success), product not found (exception), and the published `order.created` event carries the order total (price × quantity) and the currency
 - `GetOrderByIdUseCase` — order found and order not found
 - `GetAllOrdersUseCase` — returns all orders
 - `UpdateOrderStatusUseCase` — status updated successfully and order not found
+- `ApproveOrderUseCase` — an already approved order is ignored (nothing is saved), and an order awaiting payment is approved and saved
 
 Run tests:
 ```bash
