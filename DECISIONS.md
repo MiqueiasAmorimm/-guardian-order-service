@@ -81,7 +81,7 @@ The state machine only allows `AWAITING_PAYMENT → APPROVED`, but orders were c
 
 Considered four options: (A) create the order directly in `AWAITING_PAYMENT`; (B) create it in `CREATED`, call `updateStatus(AWAITING_PAYMENT)` and save once; (C) save in `CREATED`, move, and save again; (D) relax the validator to allow `CREATED → APPROVED`. Chose (B), inside a `@Transactional` method. It goes through the validator, writes once, and the event is published with the right state. (A) leaves `CREATED` unused and skips the transition rule; (C) doubles the writes and can leave an order stuck in `CREATED`; (D) discards the rule the state machine exists to enforce.
 
-Trade-offs: `CREATED` never reaches the database, and orders created before this change stay in `CREATED`. `@Transactional` only covers the database: the event is sent before the transaction commits, so the event can leave and the commit still fail, or the commit can succeed and the send fail. The transactional outbox is the planned fix. No automated test covers this transition yet.
+A unit test now checks that a newly created order comes back as AWAITING_PAYMENT; removing the transition makes it fail with `expected: <AWAITING_PAYMENT> but was: <CREATED>`.
 
 ## Consuming payment.approved with a Local Copy of the Event
 

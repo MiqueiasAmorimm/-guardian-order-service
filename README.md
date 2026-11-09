@@ -140,13 +140,13 @@ An approval for an order that is already `APPROVED` is ignored with a warning. O
 - The Kafka consumer and the move to `AWAITING_PAYMENT` have no automated tests yet. `ApproveOrderUseCase` has unit tests.
 - `payment.rejected` is not consumed yet.
 - Saving the order and publishing the event are not atomic (planned: transactional outbox).
-- If catalog-service is unreachable, `POST /orders` reports it as "Product not found" (400), because any failure of the catalog call is treated as a missing product.
-
+- The Kafka consumer has no automated test yet. The move to `AWAITING_PAYMENT` and `ApproveOrderUseCase` have unit tests.
+- 
 ## Testing
 
 Unit tests implemented with JUnit 5 and Mockito, covering the use cases (10 tests):
 
-- `CreateOrderUseCase` — product exists (success), product not found (exception), and the published `order.created` event carries the order total (price × quantity) and the currency
+- `CreateOrderUseCase` — product exists (the order comes back as `AWAITING_PAYMENT`), product not found (exception), and the published `order.created` event carries the order total (price × quantity) and the currency
 - `GetOrderByIdUseCase` — order found and order not found
 - `GetAllOrdersUseCase` — returns all orders
 - `UpdateOrderStatusUseCase` — status updated successfully and order not found
