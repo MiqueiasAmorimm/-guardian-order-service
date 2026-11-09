@@ -43,22 +43,18 @@ public class CreateOrderUseCaseTest {
         CreateOrderRequest request = new CreateOrderRequest(
                 UUID.randomUUID(),
                 2
-
         );
 
         ProductInfo productInfo = new ProductInfo();
         productInfo.setPrice(BigDecimal.valueOf(100));
         when(catalogClient.getProduct(any())).thenReturn(productInfo);
-
-        Order savedOrder = new Order(request.getProductId(), request.getQuantity(), OrderStatus.CREATED);
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrder);
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order result = createOrderUseCase.execute(request);
 
         assertNotNull(result);
-        assertEquals(OrderStatus.CREATED, result.getStatus());
+        assertEquals(OrderStatus.AWAITING_PAYMENT, result.getStatus());
     }
-
     @Test
     void shouldThrowExceptionWhenProductNotFound() {
         CreateOrderRequest request = new CreateOrderRequest(UUID.randomUUID(), 2);
