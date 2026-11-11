@@ -13,4 +13,15 @@ public class OrderStatusTransitionValidatorTest {
     void shouldAllowCreatedToAwaitingPayment() {
         assertTrue(validator.canTransition(OrderStatus.CREATED, OrderStatus.AWAITING_PAYMENT));
     }
+
+    @Test
+    void shouldAllowAwaitingPaymentToApproved() {
+        assertTrue(validator.canTransition(OrderStatus.AWAITING_PAYMENT, OrderStatus.APPROVED));
+    }
+
+    @Test
+    void shouldRefuseCreatedToApproved() {
+        assertFalse(validator.canTransition(OrderStatus.CREATED, OrderStatus.APPROVED));
+    }
+
 }
