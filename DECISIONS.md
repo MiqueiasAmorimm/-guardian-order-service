@@ -19,11 +19,15 @@ Transition rules are enforced by a separate `OrderStatusTransitionValidator` cla
 
 This decision was made in preparation for Phase 2 (Kafka), where payment-service publishes events that trigger order status changes asynchronously — making strict transition validation essential to avoid inconsistent state from out-of-order events.
 
+The transition rules have unit tests: the two transitions the flow uses (`CREATED → AWAITING_PAYMENT` and `AWAITING_PAYMENT → APPROVED`) and the refusal of `CREATED → APPROVED`, the error that showed up in the logs when an old order received an approval. Removing the first transition from the map made six tests fail: the validator test and five use case tests that depend on it. Only these transitions are covered; the other combinations in the map have no test yet.
+
 ## Database per Service
 Each microservice owns its own database. If one database goes down, only that service is affected. catalog-service uses port 5433, order-service uses port 5434, payment-service uses port 5435.
 
 ## RestTemplate for inter-service communication
 Synchronous HTTP communication with catalog-service, used to validate that a product exists and to retrieve its price before creating an order. A synchronous call fits here because the order cannot be created without this answer. Asynchronous communication with payment-service goes through Kafka, so the two mechanisms coexist.
+
+Trade-off: when catalog-service is down, `CatalogClient` treats the failure like a missing product, so `POST /orders` answers 400 "Product not found" instead of a service-unavailable error. Separating the two cases is on the list of improvements.
 
 ## ResourceNotFoundException returns 404
 Custom exception that extends RuntimeException. Used when a resource does not exist — returns 404 Not Found instead of the generic 400 Bad Request.
@@ -81,7 +85,7 @@ The state machine only allows `AWAITING_PAYMENT → APPROVED`, but orders were c
 
 Considered four options: (A) create the order directly in `AWAITING_PAYMENT`; (B) create it in `CREATED`, call `updateStatus(AWAITING_PAYMENT)` and save once; (C) save in `CREATED`, move, and save again; (D) relax the validator to allow `CREATED → APPROVED`. Chose (B), inside a `@Transactional` method. It goes through the validator, writes once, and the event is published with the right state. (A) leaves `CREATED` unused and skips the transition rule; (C) doubles the writes and can leave an order stuck in `CREATED`; (D) discards the rule the state machine exists to enforce.
 
-A unit test now checks that a newly created order comes back as AWAITING_PAYMENT; removing the transition makes it fail with `expected: <AWAITING_PAYMENT> but was: <CREATED>`.
+Trade-offs: `CREATED` never reaches the database, and orders created before this change stay in `CREATED`. `@Transactional` only covers the database: the event is sent before the transaction commits, so the event can leave and the commit still fail, or the commit can succeed and the send fail. The transactional outbox is the planned fix. A unit test checks that a newly created order comes back as `AWAITING_PAYMENT`; removing the transition makes it fail with `expected: <AWAITING_PAYMENT> but was: <CREATED>`.
 
 ## Consuming payment.approved with a Local Copy of the Event
 

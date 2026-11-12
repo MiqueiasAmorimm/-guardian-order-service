@@ -137,20 +137,21 @@ An approval for an order that is already `APPROVED` is ignored with a warning. O
 
 ## Known limitations
 
-- The Kafka consumer and the move to `AWAITING_PAYMENT` have no automated tests yet. `ApproveOrderUseCase` has unit tests.
+- The Kafka consumer has no automated test yet. The move to `AWAITING_PAYMENT`, `ApproveOrderUseCase` and the transition rules have unit tests.
 - `payment.rejected` is not consumed yet.
 - Saving the order and publishing the event are not atomic (planned: transactional outbox).
-- The Kafka consumer has no automated test yet. The move to `AWAITING_PAYMENT` and `ApproveOrderUseCase` have unit tests.
-- 
+- If catalog-service is unreachable, `POST /orders` reports it as "Product not found" (400), because any failure of the catalog call is treated as a missing product. The `RestTemplate` has no timeout or retry configured.
+
 ## Testing
 
-Unit tests implemented with JUnit 5 and Mockito, covering the use cases (10 tests):
+Unit tests implemented with JUnit 5 and Mockito, covering the use cases and the order status transition rules (13 tests):
 
 - `CreateOrderUseCase` — product exists (the order comes back as `AWAITING_PAYMENT`), product not found (exception), and the published `order.created` event carries the order total (price × quantity) and the currency
 - `GetOrderByIdUseCase` — order found and order not found
 - `GetAllOrdersUseCase` — returns all orders
 - `UpdateOrderStatusUseCase` — status updated successfully and order not found
 - `ApproveOrderUseCase` — an already approved order is ignored (nothing is saved), and an order awaiting payment is approved and saved
+- `OrderStatusTransitionValidator` — allows `CREATED → AWAITING_PAYMENT` and `AWAITING_PAYMENT → APPROVED`, and refuses `CREATED → APPROVED`
 
 Run tests:
 ```bash
@@ -163,7 +164,7 @@ GitHub Actions runs all unit tests automatically on every push to master.
 
 ## Related repositories
 
-- [catalog-service](https://github.com/MiqueiasAmorimm/guardian-catalog-service) — product catalog, and where the shared `docker-compose.yml` lives
+- [catalog-service](https://github.com/MiqueiasAmorimm/guardian-ecommerce) — product catalog, and where the shared `docker-compose.yml` lives
 - [payment-service](https://github.com/MiqueiasAmorimm/guardian-payment-service) — consumes `order.created`, stores the payment and publishes `payment.approved`
 
 ## API Documentation
